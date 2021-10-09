@@ -16,7 +16,6 @@ const getQuery = (url) => {
   var index2 = url.indexOf('=');
   const query = url.slice(index1 + 1, index2);
   const queryValue = url.slice(index2 + 1);
-  // console.log('queryies', query, queryValue);
   return [query, queryValue];
 };
 
@@ -101,9 +100,6 @@ var requestHandler = function(request, response) {
 
   const _url = url.parse(request.url).pathname;
 
-  const fullURL = request.headers.referer.slice(0, -1) + request.url;
-
-  const _urlObj = new URL(fullURL);
 
   console.log('Serving request type ' + method + ' for url ' + request.url);
   let headers = defaultCorsHeaders;
@@ -118,16 +114,31 @@ var requestHandler = function(request, response) {
     response.writeHead(statusCodes.OK, headers);
     response.end();
     return;
-
+  }
 
 
   ////////////////////////////
   // GET
   ////////////////////////////
-  } else if (method === 'GET' && _url === '/classes/messages/users') {
+  if (method === 'GET' && _url === '/classes/messages/users/user') {
     // response.writeHead(statusCodes.OK, headers);
     // // Handle empty responses. Is that a 202 status code?
-    const user = _urlObj.searchParams.get('user');
+    console.log(request.headers);
+    // Use this if you have a referer (not a test)
+    let user;
+    // Yes this would catch more than just a TypeError as well
+    try {
+      const fullURL = request.headers.referer.slice(0, -1) + request.url;
+      const _urlObj = new URL(fullURL);
+      user = _urlObj.searchParams.get('user');
+    } catch (e) {
+      if (e.name === 'TypeError') {
+        console.log(`There is no referer for this request.
+                      Disregarding host and using path only.`);
+      }
+      user = getQuery(request.url)[1];
+    }
+
     let output = {
       results: [],
     };
@@ -138,8 +149,8 @@ var requestHandler = function(request, response) {
     }
     response.writeHead(statusCodes.OK, headers);
     response.end(JSON.stringify(output));
-    console.log(output);
     return;
+
 
 
   } else if (method === 'GET' && _url === '/classes/messages') {
@@ -163,7 +174,6 @@ var requestHandler = function(request, response) {
     request.on('error', (err) => {
       console.error(err, 'there was an error');
     }).on('data', (chunk) => { // There is not data in a GET request
-      console.log('chunk', chunk);
       store.results.push(JSON.parse(chunk));
       store.results[store.results.length - 1].id = _id;
       _id++;
@@ -171,7 +181,6 @@ var requestHandler = function(request, response) {
       // Always write headers before body
       response.writeHead(statusCodes.ACCEPTED, headers);
       response.end(JSON.stringify(store));
-      console.log('query', request.query);
     });
     return;
 

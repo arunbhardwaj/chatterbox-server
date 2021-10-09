@@ -8,11 +8,11 @@ describe('Node Server Request Listener Function', function() {
     // but we want to test our function's behavior totally independent of the server code
     var req = new stubs.request('/classes/messages', 'GET');
     var res = new stubs.response();
-    console.log(res);
-    console.log(req);
+    // console.log(res);
+    // console.log(req);
     handler.requestHandler(req, res);
 
-    console.log(res._responseCode);
+    // console.log(res._responseCode);
 
     expect(res._responseCode).to.equal(200);
     expect(res._ended).to.equal(true);
@@ -121,6 +121,35 @@ describe('Node Server Request Listener Function', function() {
   });
 
   it('Should send back data with only the specified user', function() {
+    var stubMsg1 = {
+      username: 'Jobo',
+      text: 'Do my bidding!'
+    };
+    var stubMsg2 = {
+      username: 'Juno',
+      text: 'Don\'t do my bidding!'
+    };
 
+    var req = new stubs.request('/classes/messages', 'POST', stubMsg1);
+    var res = new stubs.response();
+
+    handler.requestHandler(req, res);
+
+    var req = new stubs.request('/classes/messages', 'POST', stubMsg2);
+    var res = new stubs.response();
+
+    handler.requestHandler(req, res);
+
+    var req = new stubs.request('/classes/messages/users/user?user=Jobo', 'GET');
+    var res = new stubs.response();
+
+    handler.requestHandler(req, res);
+
+    expect(res._responseCode).to.equal(200);
+    var messages = JSON.parse(res._data).results;
+    expect(messages.length).to.equal(1);
+    expect(messages[0].username).to.equal('Jobo');
+    expect(messages[0].text).to.equal('Do my bidding!');
+    expect(res._ended).to.equal(true);
   });
 });
